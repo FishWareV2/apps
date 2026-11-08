@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FishScalz</title>
+<meta name="description" content="Estimate a fish's weight from its length, species and relative weight (Wr).">
+<style>
+  :root {
+    --bg: #f5f5f2; --card: #ffffff; --text: #1b1b1b; --muted: #6b6b6b; --border: #e2e2de;
+    --accent: #2f5bd3; --accent-soft: #eaf0fd; --entry: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212; --card: #1c1c1c; --text: #ececec; --muted: #9a9a9a; --border: #2e2e2e;
+      --accent: #7aa2ff; --accent-soft: #1f2a44; --entry: #151515;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212; --card: #1c1c1c; --text: #ececec; --muted: #9a9a9a; --border: #2e2e2e;
+    --accent: #7aa2ff; --accent-soft: #1f2a44; --entry: #151515;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 56px; }
+  h1 { margin: 0 0 4px; font-size: 1.8rem; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 4px; }
+  select, input[type=number] { width: 100%; padding: 9px 10px; font: inherit; color: var(--text);
+    background: var(--entry); border: 1px solid var(--border); border-radius: 8px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .row > div.full { grid-column: 1 / -1; }
+  .coef { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .coef div { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; }
+  .coef b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .coef span { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .eq { margin: 12px 0 0; color: var(--muted); font-size: .85rem; font-family: ui-monospace, Menlo, monospace; }
+  .wr { display: flex; justify-content: space-between; align-items: baseline; }
+  .wr b { font-size: 1.3rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 8px 0 0; }
+  .ticks { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); }
+  .result { text-align: center; }
+  .result .big { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .result .alt { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .result .ws { margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .note { color: var(--muted); font-size: .85rem; }
+  .back { display: inline-block; margin-bottom: 12px; color: var(--accent); text-decoration: none; font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="../">← Fisheries Tools</a>
+  <h1>FishScalz</h1>
+  <p class="sub">Estimate a fish's weight from its length, species and relative weight (Wr).</p>
+
+  <div class="card">
+    <label for="species">Species</label>
+    <select id="species"></select>
+    <div class="coef">
+      <div><b id="code">–</b><span>Species code</span></div>
+      <div><b id="slope">–</b><span>Slope</span></div>
+      <div><b id="intercept">–</b><span>Intercept</span></div>
+    </div>
+    <p class="eq">log10 Ws(g) = slope × log10 L(mm) + intercept</p>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-top:0">
+      <div>
+        <label for="len">Length</label>
+        <input id="len" type="number" min="0" step="any" value="12">
+      </div>
+      <div>
+        <label for="lenUnit">Length units</label>
+        <select id="lenUnit"><option value="in">English (inches)</option><option value="mm">Metric (mm)</option></select>
+      </div>
+      <div class="full">
+        <label for="wtUnit">Weight units</label>
+        <select id="wtUnit"><option value="en">English (lb / oz)</option><option value="met">Metric (g / kg)</option></select>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="wr"><label for="wr" style="margin:0">Relative weight (Wr)</label><b id="wrVal">100</b></div>
+      <input id="wr" type="range" min="50" max="150" step="1" value="100">
+      <div class="ticks"><span>50 (thin)</span><span>100 (standard)</span><span>150 (plump)</span></div>
+    </div>
+  </div>
+
+  <div class="card result">
+    <div class="big" id="out">–</div>
+    <div class="alt" id="alt"></div>
+    <div class="ws" id="ws"></div>
+  </div>
+
+  <p class="note">Species grouped as in the JakeOMatic species LUT. Species with no standard-weight equation are listed but disabled. Edits saved in JakeOMatic's Species LUT are picked up here.</p>
+</main>
+
+<script>
+// Standard weight: log10 Ws (g) = slope * log10 L (mm) + intercept. Same table as JakeOMatic's default LUT.
+const DEFAULT_LUT = [
+  ["BROWN TROUT","LOC",2.96,-4.867],["RAINBOW TROUT","RBT",2.99,-4.898],
+  ["CUTTHROAT TROUT - SRN","SRN",3.086,-5.192],["CUTTHROAT TROUT - CRN","CRN",3.086,-5.192],
+  ["CUTTHROAT TROUT - GBN","GBN",3.086,-5.192],["CUTTHROAT TROUT - RGN","RGN",3.086,-5.192],
+  ["BROOK TROUT","BRK",3.103,-5.186],["MOUNTAIN WHITEFISH","MWF",3.036,-5.086],
+  ["ARCTIC GRAYLING","GRA",0,0],["SPLAKE","SPL",0,0],["LAKE TROUT","MAC",3.264,-5.681],
+  ["KOKANEE","KOK",0,0],["ARCTIC CHAR","ARC",0,0],
+  ["BLUEHEAD SUCKER","BHS",0,0],["FLANNELMOUTH SUCKER","FMS",0,0],["LONGNOSE SUCKER","LGS",0,0],
+  ["MOUNTAIN SUCKER","MOS",0,0],["RAZORBACK SUCKER","RBS",0,0],["RIO GRANDE SUCKER","RGS",0,0],
+  ["RIVER CARPSUCKER","RCS",2.992,-4.839],["WHITE SUCKER","WHS",2.94,-4.755],
+].map(([name, code, slope, intercept]) => ({ name, code, slope, intercept }));
+
+const GROUPS = ["Salmonids", "Suckers", "Warmwater", "Minnows et al."];
+const GROUP_OF = {};
+const add = (g, s) => s.split(" ").forEach(c => GROUP_OF[c] = g);
+add("Salmonids", "LOC RBT SRN CRN GBN RGN BRK MWF GRA SPL MAC KOK ARC CTT TGT SAL");
+add("Suckers", "BHS FMS LGS MOS RBS RGS RCS WHS");
+add("Warmwater", "LMB SMB SPB WAE SAR BLG GSF GSF BCR WCR CCF BLB YBH WBS STB NOP TGM BGL BKB YEP BLC RBG");
+// anything else (minnows, daces, chubs, shiners, darters, sculpins, etc.) falls into "Minnows et al."
+
+function loadLUT() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("jakeomatic_lut") || "null");
+    if (Array.isArray(saved) && saved.length) {
+      return saved.filter(s => s && s.code).map(s => ({
+        name: String(s.name || s.code), code: String(s.code).toUpperCase(),
+        slope: Number(s.slope) || 0, intercept: Number(s.intercept) || 0 }));
+    }
+  } catch { /* storage unavailable */ }
+  return DEFAULT_LUT;
+}
+
+const $ = id => document.getElementById(id);
+const lut = loadLUT();
+const byCode = Object.fromEntries(lut.map(s => [s.code, s]));
+const title = s => s.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(Srn|Crn|Gbn|Rgn)\b/g, m => m.toUpperCase());
+
+for (const g of GROUPS) {
+  const members = lut.filter(s => (GROUP_OF[s.code] || "Minnows et al.") === g);
+  const og = document.createElement("optgroup"); og.label = g;
+  if (!members.length) {
+    const o = document.createElement("option"); o.disabled = true; o.textContent = "(no species in LUT yet)"; og.append(o);
+  }
+  for (const s of members) {
+    const o = document.createElement("option");
+    o.value = s.code; o.disabled = !s.slope;
+    o.textContent = title(s.name) + (s.slope ? "" : " (no equation)");
+    og.append(o);
+  }
+  $("species").append(og);
+}
+$("species").value = "RBT" in byCode && byCode.RBT.slope ? "RBT" : (lut.find(s => s.slope) || {}).code;
+
+const fmt = (x, d) => x.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+
+function update() {
+  const sp = byCode[$("species").value];
+  $("code").textContent = sp ? sp.code : "–";
+  $("slope").textContent = sp ? sp.slope : "–";
+  $("intercept").textContent = sp ? sp.intercept : "–";
+  const wr = +$("wr").value; $("wrVal").textContent = wr;
+  let len = parseFloat($("len").value);
+  const mm = $("lenUnit").value === "in" ? len * 25.4 : len;
+  if (!sp || !(mm > 0)) { $("out").textContent = "–"; $("alt").textContent = ""; $("ws").textContent = ""; return; }
+  const ws = Math.pow(10, sp.slope * Math.log10(mm) + sp.intercept); // grams
+  const g = ws * wr / 100;
+  const lb = g / 453.59237;
+  if ($("wtUnit").value === "en") {
+    const lbs = Math.floor(lb), oz = (lb - lbs) * 16;
+    $("out").textContent = lb >= 1 ? `${fmt(lb, 2)} lb` : `${fmt(lb * 16, 1)} oz`;
+    $("alt").textContent = lb >= 1 ? `${lbs} lb ${fmt(oz, 1)} oz` : `${fmt(lb, 3)} lb`;
+    $("ws").textContent = `Standard weight (Wr 100): ${fmt(ws / 453.59237, 2)} lb`;
+  } else {
+    $("out").textContent = g >= 1000 ? `${fmt(g / 1000, 3)} kg` : `${fmt(g, 0)} g`;
+    $("alt").textContent = g >= 1000 ? `${fmt(g, 0)} g` : `${fmt(g / 1000, 3)} kg`;
+    $("ws").textContent = `Standard weight (Wr 100): ${fmt(ws, 0)} g`;
+  }
+  $("ws").textContent += ` at ${fmt(mm, 0)} mm / ${fmt(mm / 25.4, 1)} in`;
+}
+
+// Converting the length field when units change keeps the same fish.
+let prevUnit = $("lenUnit").value;
+$("lenUnit").addEventListener("change", () => {
+  const v = parseFloat($("len").value), u = $("lenUnit").value;
+  if (v > 0 && u !== prevUnit) $("len").value = u === "mm" ? Math.round(v * 25.4) : +(v / 25.4).toFixed(1);
+  prevUnit = u; update();
+});
+["species", "len", "wr", "wtUnit"].forEach(id => $(id).addEventListener("input", update));
+update();
+</script>
+</body>
+</html>

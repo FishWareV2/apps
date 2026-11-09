@@ -1,12 +1,13 @@
 # Kevin
 
-Browser tools for fisheries data, published with GitHub Pages. The landing page at https://fishwarev2.github.io/apps/ links to all three.
+Browser tools for fisheries data, published with GitHub Pages. The landing page at https://fishwarev2.github.io/apps/ links to all four.
 
 | Tool | Live page | What it does | How it calculates |
 |---|---|---|---|
 | **StockDB** | https://fishwarev2.github.io/apps/StockDB/ | Look up historical fish stocking records by water name or code | [StockDB/README.md](StockDB/README.md) |
 | **WaTSS** | https://fishwarev2.github.io/apps/WaTSS/ | Summarize stream temperature logger data (MWAT, MWMT, M30AT, …) | [WaTSS/README.md](WaTSS/README.md) |
 | **JakeOmatic** | https://fishwarev2.github.io/apps/JakeOMatic/ | Enter and summarize lake and stream fish surveys (CPUE, PSD, Wr, removal estimates) | [JakeOMatic/README.md](JakeOMatic/README.md) |
+| **FishScalz** | https://fishwarev2.github.io/apps/FishScalz/ | Estimate a fish's weight from its length, species and relative weight (Wr) | [FishScalz/README.md](FishScalz/README.md) |
 
 ## StockDB
 
@@ -83,13 +84,23 @@ A fish survey data program, rewritten from JakeOmatic 3.0 as version 4.0. Like W
 - The statistic labelled "RSD-Q" in 3.0 actually computed RSD-P, so it's now labelled RSD-P.
 - The charts show only the selected species.
 
+## FishScalz
+
+Estimate a fish's weight from its length, species and relative weight (Wr). Full notes are in [FishScalz/README.md](FishScalz/README.md).
+
+- **Species**: four tabs (Salmonids, Suckers, Warmwater, Minnows et al.), each with its own dropdown. The equations and groups come from `FishScalz/standard_weight_equations_English.csv` (77 equations).
+- **Length and weight units**: set separately. Length in inches or mm; weight in lb/oz or g/kg.
+- **Wr slider**: 50 to 150, starting at the 93 "average" marker.
+- **Result**: the estimated weight, the standard weight at that length, and the equation's slope and intercept (plus a quadratic term for some species) with its citation.
+- **Calculation**: weight = Ws × Wr ÷ 100, where log10 Ws(lb) = int + slope × log10 L(in) + quad × (log10 L(in))².
+
 ## Running locally
 
 The pages load their data and Python files with `fetch`, so opening them directly from disk (`file://`) won't work. Serve the repository instead:
 
 ```bash
 python3 -m http.server 8000
-# then open http://localhost:8000/ (or /StockDB/, /WaTSS/, /JakeOMatic/)
+# then open http://localhost:8000/ (or /StockDB/, /WaTSS/, /JakeOMatic/, /FishScalz/)
 ```
 
 Pushing to `main` redeploys GitHub Pages within a minute or two.

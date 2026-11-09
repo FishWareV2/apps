@@ -32,7 +32,7 @@
     background: var(--entry); border: 1px solid var(--border); border-radius: 8px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
   .row > div.full { grid-column: 1 / -1; }
-  .coef { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+  .coef { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-top: 16px; }
   .coef div { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; }
   .coef b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
   .coef span { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -46,10 +46,19 @@
   .ticks .avg { color: var(--accent); font-weight: 600; }
   .ticks .avg::before { background: var(--accent); height: 12px; }
   .result { text-align: center; }
+  .result .params, .result #src { text-align: left; }
+  .params { margin: 16px 0 4px; padding-top: 12px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
   .result .big { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
   .result .alt { color: var(--muted); font-variant-numeric: tabular-nums; }
   .result .ws { margin-top: 10px; font-size: .9rem; color: var(--muted); }
   .note { color: var(--muted); font-size: .85rem; }
+  .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+  .tabs button { font: inherit; font-size: .85rem; padding: 8px 4px; cursor: pointer; color: var(--muted);
+    background: var(--entry); border: 1px solid var(--border); border-radius: 8px; }
+  .tabs button[aria-selected=true] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+  .warn { margin-top: 8px; font-size: .85rem; color: #c62828; }
+  :root[data-theme="dark"] .warn { color: #ff6b6b; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .warn { color: #ff6b6b; } }
   .back { display: inline-block; margin-bottom: 12px; color: var(--accent); text-decoration: none; font-size: .9rem; }
 </style>
 </head>
@@ -60,20 +69,15 @@
   <p class="sub">Estimate a fish's weight from its length, species and relative weight (Wr).</p>
 
   <div class="card">
-    <label for="species">Species</label>
-    <select id="species"></select>
-    <div class="coef">
-      <div><b id="code">–</b><span>Species code</span></div>
-      <div><b id="slope">–</b><span>Slope</span></div>
-      <div><b id="intercept">–</b><span>Intercept</span></div>
-    </div>
-    <p class="eq">log10 Ws(g) = slope × log10 L(mm) + intercept</p>
+    <label id="tabLabel">Species group</label>
+    <div class="tabs" id="tabs" role="tablist" aria-labelledby="tabLabel"></div>
+    <select id="species" aria-label="Species"></select>
   </div>
 
   <div class="card">
     <div class="row" style="margin-top:0">
       <div>
-        <label for="len">Length</label>
+        <label for="len" id="lenLabel">Length</label>
         <input id="len" type="number" min="0" step="any" value="12">
       </div>
       <div>
@@ -86,7 +90,7 @@
       </div>
     </div>
     <div style="margin-top:16px">
-      <div class="wr"><label for="wr" style="margin:0">Relative weight (Wr)</label><b id="wrVal">100</b></div>
+      <div class="wr"><label for="wr" style="margin:0">Relative weight <span style="text-transform:none">(Wr)</span></label><b id="wrVal">93</b></div>
       <input id="wr" type="range" min="50" max="150" step="1" value="93">
       <div class="ticks">
         <span style="left:calc(8px + 0 * (100% - 16px))">50<br>thin</span>
@@ -100,102 +104,122 @@
     <div class="big" id="out">–</div>
     <div class="alt" id="alt"></div>
     <div class="ws" id="ws"></div>
+    <div class="warn" id="warn"></div>
+    <p class="params" id="params"></p>
+    <p class="note" id="src"></p>
   </div>
 
-  <p class="note">Species grouped as in the JakeOMatic species LUT. Species with no standard-weight equation are listed but disabled. Edits saved in JakeOMatic's Species LUT are picked up here.</p>
+  <p class="note" id="foot">Standard-weight equations are read from standard_weight_equations_English.csv.</p>
 </main>
 
 <script>
-// Standard weight: log10 Ws (g) = slope * log10 L (mm) + intercept. Same table as JakeOMatic's default LUT.
-const DEFAULT_LUT = [
-  ["BROWN TROUT","LOC",2.96,-4.867],["RAINBOW TROUT","RBT",2.99,-4.898],
-  ["CUTTHROAT TROUT - SRN","SRN",3.086,-5.192],["CUTTHROAT TROUT - CRN","CRN",3.086,-5.192],
-  ["CUTTHROAT TROUT - GBN","GBN",3.086,-5.192],["CUTTHROAT TROUT - RGN","RGN",3.086,-5.192],
-  ["BROOK TROUT","BRK",3.103,-5.186],["MOUNTAIN WHITEFISH","MWF",3.036,-5.086],
-  ["ARCTIC GRAYLING","GRA",0,0],["SPLAKE","SPL",0,0],["LAKE TROUT","MAC",3.264,-5.681],
-  ["KOKANEE","KOK",0,0],["ARCTIC CHAR","ARC",0,0],
-  ["BLUEHEAD SUCKER","BHS",0,0],["FLANNELMOUTH SUCKER","FMS",0,0],["LONGNOSE SUCKER","LGS",0,0],
-  ["MOUNTAIN SUCKER","MOS",0,0],["RAZORBACK SUCKER","RBS",0,0],["RIO GRANDE SUCKER","RGS",0,0],
-  ["RIVER CARPSUCKER","RCS",2.992,-4.839],["WHITE SUCKER","WHS",2.94,-4.755],
-].map(([name, code, slope, intercept]) => ({ name, code, slope, intercept }));
-
-const GROUPS = ["Salmonids", "Suckers", "Warmwater", "Minnows et al."];
-const GROUP_OF = {};
-const add = (g, s) => s.split(" ").forEach(c => GROUP_OF[c] = g);
-add("Salmonids", "LOC RBT SRN CRN GBN RGN BRK MWF GRA SPL MAC KOK ARC CTT TGT SAL");
-add("Suckers", "BHS FMS LGS MOS RBS RGS RCS WHS");
-add("Warmwater", "LMB SMB SPB WAE SAR BLG GSF GSF BCR WCR CCF BLB YBH WBS STB NOP TGM BGL BKB YEP BLC RBG");
-// anything else (minnows, daces, chubs, shiners, darters, sculpins, etc.) falls into "Minnows et al."
-
-function loadLUT() {
-  try {
-    const saved = JSON.parse(localStorage.getItem("jakeomatic_lut") || "null");
-    if (Array.isArray(saved) && saved.length) {
-      return saved.filter(s => s && s.code).map(s => ({
-        name: String(s.name || s.code), code: String(s.code).toUpperCase(),
-        slope: Number(s.slope) || 0, intercept: Number(s.intercept) || 0 }));
-    }
-  } catch { /* storage unavailable */ }
-  return DEFAULT_LUT;
-}
-
+// Equations come from standard_weight_equations_English.csv (lengths in inches, weights in pounds):
+//   log10 Ws(lb) = int + slope * log10 L(in) + quad * (log10 L(in))^2
+const GROUPS = [["Salmonid", "Salmonids"], ["Sucker", "Suckers"], ["Warmwater", "Warmwater"], ["Minnows et al.", "Minnows et al."]];
+const G_PER_LB = 453.59237, MM_PER_IN = 25.4;
 const $ = id => document.getElementById(id);
-const lut = loadLUT();
-const byCode = Object.fromEntries(lut.map(s => [s.code, s]));
-const title = s => s.toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase()).replace(/\b(Srn|Crn|Gbn|Rgn)\b/g, m => m.toUpperCase());
 
-for (const g of GROUPS) {
-  const members = lut.filter(s => (GROUP_OF[s.code] || "Minnows et al.") === g);
-  const og = document.createElement("optgroup"); og.label = g;
-  if (!members.length) {
-    const o = document.createElement("option"); o.disabled = true; o.textContent = "(no species in LUT yet)"; og.append(o);
+function parseCSV(text) {
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(f); f = ""; if (row.some(x => x !== "")) rows.push(row); row = []; }
+    else f += c;
   }
-  for (const s of members) {
-    const o = document.createElement("option");
-    o.value = s.code; o.disabled = !s.slope;
-    o.textContent = title(s.name) + (s.slope ? "" : " (no equation)");
-    og.append(o);
-  }
-  $("species").append(og);
+  if (f !== "" || row.length) { row.push(f); rows.push(row); }
+  const head = rows.shift().map(h => h.trim());
+  return rows.map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] ?? "").trim()])));
 }
-$("species").value = "RBT" in byCode && byCode.RBT.slope ? "RBT" : (lut.find(s => s.slope) || {}).code;
+const num = v => { const x = parseFloat(v); return Number.isFinite(x) ? x : null; };
+
+let species = [], active = null, group = GROUPS[0][0];
+
+function pickGroup(g, keepSpecies) {
+  group = g;
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.g === g));
+  const sel = $("species"); sel.innerHTML = "";
+  for (const s of species.filter(s => s.group === g)) {
+    const o = document.createElement("option"); o.value = s.idx; o.textContent = s.name; sel.append(o);
+  }
+  if (!keepSpecies && sel.options.length) sel.selectedIndex = 0;
+  update();
+}
 
 const fmt = (x, d) => x.toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+const trim = x => String(+x.toFixed(5));
 
 function update() {
-  const sp = byCode[$("species").value];
-  $("code").textContent = sp ? sp.code : "–";
-  $("slope").textContent = sp ? sp.slope : "–";
-  $("intercept").textContent = sp ? sp.intercept : "–";
+  const sp = species[+$("species").value];
+  active = sp || null;
+  $("params").textContent = sp
+    ? `Slope: ${trim(sp.slope)} · Intercept: ${trim(sp.int)}` + (sp.quad ? ` · Quadratic: ${trim(sp.quad)}` : "")
+    : "";
+  $("src").textContent = sp ? `${sp.method} equation · ${sp.source}` + (sp.comment && sp.comment !== "none" ? ` · ${sp.comment}` : "") : "";
+  $("lenLabel").textContent = sp ? `Length (${sp.measure})` : "Length";
+
   const wr = +$("wr").value; $("wrVal").textContent = wr;
-  let len = parseFloat($("len").value);
-  const mm = $("lenUnit").value === "in" ? len * 25.4 : len;
-  if (!sp || !(mm > 0)) { $("out").textContent = "–"; $("alt").textContent = ""; $("ws").textContent = ""; return; }
-  const ws = Math.pow(10, sp.slope * Math.log10(mm) + sp.intercept); // grams
-  const g = ws * wr / 100;
-  const lb = g / 453.59237;
-  if ($("wtUnit").value === "en") {
-    const lbs = Math.floor(lb), oz = (lb - lbs) * 16;
-    $("out").textContent = lb >= 1 ? `${fmt(lb, 2)} lb` : `${fmt(lb * 16, 1)} oz`;
-    $("alt").textContent = lb >= 1 ? `${lbs} lb ${fmt(oz, 1)} oz` : `${fmt(lb, 3)} lb`;
-    $("ws").textContent = `Standard weight (Wr 100): ${fmt(ws / 453.59237, 2)} lb`;
-  } else {
+  const len = parseFloat($("len").value);
+  const inches = $("lenUnit").value === "in" ? len : len / MM_PER_IN;
+  $("warn").textContent = "";
+  if (!sp || !(inches > 0)) { $("out").textContent = "–"; $("alt").textContent = ""; $("ws").textContent = ""; return; }
+  const x = Math.log10(inches);
+  const wsLb = Math.pow(10, sp.int + sp.slope * x + (sp.quad || 0) * x * x);
+  const lb = wsLb * wr / 100, g = lb * G_PER_LB, mm = inches * MM_PER_IN;
+  if ($("wtUnit").value === "met") {
     $("out").textContent = g >= 1000 ? `${fmt(g / 1000, 3)} kg` : `${fmt(g, 0)} g`;
     $("alt").textContent = g >= 1000 ? `${fmt(g, 0)} g` : `${fmt(g / 1000, 3)} kg`;
-    $("ws").textContent = `Standard weight (Wr 100): ${fmt(ws, 0)} g`;
+    $("ws").textContent = `Standard weight (Wr 100): ${fmt(wsLb * G_PER_LB, 0)} g`;
+  } else {
+    $("out").textContent = lb >= 1 ? `${fmt(lb, 2)} lb` : `${fmt(lb * 16, 1)} oz`;
+    $("alt").textContent = lb >= 1 ? `${Math.floor(lb)} lb ${fmt((lb - Math.floor(lb)) * 16, 1)} oz` : `${fmt(lb, 3)} lb`;
+    $("ws").textContent = `Standard weight (Wr 100): ${fmt(wsLb, 2)} lb`;
   }
-  $("ws").textContent += ` at ${fmt(mm, 0)} mm / ${fmt(mm / 25.4, 1)} in`;
+  $("ws").textContent += ` at ${fmt(mm, 0)} mm / ${fmt(inches, 1)} in`;
+  if (sp.minIn != null && inches < sp.minIn) $("warn").textContent = `Shorter than the ${fmt(sp.minIn, 1)} in minimum length this equation was built for.`;
+  else if (sp.maxIn != null && inches > sp.maxIn) $("warn").textContent = `Longer than the ${fmt(sp.maxIn, 1)} in maximum length this equation was built for.`;
 }
 
-// Converting the length field when units change keeps the same fish.
+// Changing the length unit converts the typed number so it stays the same fish.
 let prevUnit = $("lenUnit").value;
 $("lenUnit").addEventListener("change", () => {
   const v = parseFloat($("len").value), u = $("lenUnit").value;
-  if (v > 0 && u !== prevUnit) $("len").value = u === "mm" ? Math.round(v * 25.4) : +(v / 25.4).toFixed(1);
+  if (v > 0 && u !== prevUnit) $("len").value = u === "mm" ? Math.round(v * MM_PER_IN) : +(v / MM_PER_IN).toFixed(1);
   prevUnit = u; update();
 });
 ["species", "len", "wr", "wtUnit"].forEach(id => $(id).addEventListener("input", update));
-update();
+
+async function init() {
+  const tabs = $("tabs");
+  for (const [key, label] of GROUPS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.role = "tab"; b.dataset.g = key; b.textContent = label;
+    b.addEventListener("click", () => pickGroup(key));
+    tabs.append(b);
+  }
+  try {
+    const res = await fetch("standard_weight_equations_English.csv");
+    if (!res.ok) throw new Error(res.status);
+    const rows = parseCSV(await res.text());
+    // Length limits in the CSV are inches, except a few rows given in mm (values of 50 or more).
+    const toIn = v => v == null ? null : (v >= 50 ? v / MM_PER_IN : v);
+    species = rows.map((r, idx) => ({
+      idx, name: r.species, group: r.group.trim(), measure: r.measure, method: r.method,
+      int: num(r.int), slope: num(r.slope), quad: num(r.quad),
+      minIn: toIn(num(r["min.len"])), maxIn: toIn(num(r["max.len"])),
+      source: r.source, comment: r.comment,
+    })).filter(s => s.name && s.int != null && s.slope != null);
+  } catch (e) {
+    $("src").textContent = "Could not load standard_weight_equations_English.csv. Serve the folder over http (python3 -m http.server) instead of opening the file directly.";
+    return;
+  }
+  const start = species.find(s => s.name === "Rainbow Trout (lotic)") || species[0];
+  pickGroup(start.group);
+  $("species").value = start.idx; update();
+}
+init();
 </script>
 </body>
 </html>

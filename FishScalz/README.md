@@ -1,6 +1,6 @@
 # FishScalz
 
-Estimate a fish's weight from its length, species and relative weight (Wr). Live page: https://fishwarev2.github.io/test-page/FishScalz/
+Estimate a fish's weight from its length, species and relative weight (Wr). Live page: https://fishwarev2.github.io/apps/FishScalz/
 
 ## How to use
 

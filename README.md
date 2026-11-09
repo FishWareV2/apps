@@ -1,12 +1,12 @@
 # Kevin
 
-Browser tools for fisheries data, published with GitHub Pages. The landing page at https://fishwarev2.github.io/test-page/ links to all three.
+Browser tools for fisheries data, published with GitHub Pages. The landing page at https://fishwarev2.github.io/apps/ links to all three.
 
 | Tool | Live page | What it does | How it calculates |
 |---|---|---|---|
-| **StockDB** | https://fishwarev2.github.io/test-page/StockDB/ | Look up historical fish stocking records by water name or code | [StockDB/README.md](StockDB/README.md) |
-| **WaTSS** | https://fishwarev2.github.io/test-page/WaTSS/ | Summarize stream temperature logger data (MWAT, MWMT, M30AT, …) | [WaTSS/README.md](WaTSS/README.md) |
-| **JakeOmatic** | https://fishwarev2.github.io/test-page/JakeOMatic/ | Enter and summarize lake and stream fish surveys (CPUE, PSD, Wr, removal estimates) | [JakeOMatic/README.md](JakeOMatic/README.md) |
+| **StockDB** | https://fishwarev2.github.io/apps/StockDB/ | Look up historical fish stocking records by water name or code | [StockDB/README.md](StockDB/README.md) |
+| **WaTSS** | https://fishwarev2.github.io/apps/WaTSS/ | Summarize stream temperature logger data (MWAT, MWMT, M30AT, …) | [WaTSS/README.md](WaTSS/README.md) |
+| **JakeOmatic** | https://fishwarev2.github.io/apps/JakeOMatic/ | Enter and summarize lake and stream fish surveys (CPUE, PSD, Wr, removal estimates) | [JakeOMatic/README.md](JakeOMatic/README.md) |
 
 ## StockDB
 

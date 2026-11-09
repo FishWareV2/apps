@@ -2,7 +2,7 @@
 
 StockDB looks up western fish stocking records from 1952 to 1999. It's a search tool, so the only calculation is the fish total. This page explains how the data is read, how searches match, and how the total is worked out. All of the code is in the `<script>` block of [`index.html`](index.html).
 
-Live page: https://fishwarev2.github.io/test-page/StockDB/
+Live page: https://fishwarev2.github.io/apps/StockDB/
 
 ## The data
 

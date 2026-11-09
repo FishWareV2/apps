@@ -2,7 +2,7 @@
 
 JakeOmatic 4.0 summarizes lake and stream fish surveys. This page explains every statistic it reports. All of the code is in [`jakeomatic.py`](jakeomatic.py), and the function names below refer to it.
 
-Live page: https://fishwarev2.github.io/test-page/JakeOMatic/
+Live page: https://fishwarev2.github.io/apps/JakeOMatic/
 
 ## Fish records
 

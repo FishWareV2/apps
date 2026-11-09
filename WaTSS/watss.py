@@ -363,7 +363,7 @@ def export_name(source_name, filt, averaging, window):
 # ---------------------------------------------------------------- R / ggplot2 export
 
 GGPLOTGUI_URL = "https://shiny.gmw.rug.nl/ggplotgui/"
-WATSS_URL = "https://fishwarev2.github.io/test-page/WaTSS/"
+WATSS_URL = "https://fishwarev2.github.io/apps/WaTSS/"
 R_COLOURS = {"raw": "#1f6fd1", "filtered": "#138a55", "left": "#c99a00", "right": "#e46a00"}
 
 

@@ -2,7 +2,7 @@
 
 WaTSS (Water Temperature Summary Software) summarizes stream temperature logger records. This page explains each step from reading the file to the summary table. All of the code is in [`watss.py`](watss.py), and the function names below refer to it.
 
-Live page: https://fishwarev2.github.io/test-page/WaTSS/
+Live page: https://fishwarev2.github.io/apps/WaTSS/
 Original method: Rogers, K. B. 2015. *User manual for WaTSS 3.0* ([`WaTSSmanual3_04.pdf`](WaTSSmanual3_04.pdf)).
 
 ## 1. Reading the file (`parse`)
